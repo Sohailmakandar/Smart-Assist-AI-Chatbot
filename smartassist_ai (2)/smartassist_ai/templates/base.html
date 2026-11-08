@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}SmartAssist AI{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+</div>
+
+<nav class="navbar">
+  <a href="/" class="brand-mark">
+    <span class="dot"></span>
+    SmartAssist <span style="color:var(--text-dim); font-weight:500;">AI</span>
+  </a>
+  <div class="nav-links">
+    <a href="/" class="{{ 'active' if active_page == 'chat' else '' }}">Chat</a>
+    <a href="/#myspace">My Space</a>
+    <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">Dashboard</a>
+    <a href="/#about">About</a>
+  </div>
+  <div class="navbar-right">
+    {% if active_page == 'chat' %}
+    <div class="notif-wrap">
+      <button class="notif-bell" id="notifBell" title="Notifications">
+        🔔
+        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-dropdown-head">
+          <span>Notifications</span>
+          <button id="notifReadAll">Mark all read</button>
+        </div>
+        <div id="notifList"><div class="notif-empty">Sign in to see notifications.</div></div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="nav-status">
+      <span class="pulse-dot" style="color:var(--low);"></span>
+      SOHAIL MAKANDAR
+    </div>
+    <button class="theme-toggle" id="themeToggle" title="Toggle light / dark theme">🌙</button>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<footer>
+  SmartAssist AI &mdash; Intelligent Customer Service Chatbot &amp; Support Management System &middot;
+  Built with Flask, scikit-learn &amp; SQLite &middot; MCA Project, Karnataka State Open University
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

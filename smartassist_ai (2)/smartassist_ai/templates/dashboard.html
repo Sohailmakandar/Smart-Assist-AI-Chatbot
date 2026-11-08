@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}SmartAssist AI — Admin Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="sidebar-group-label">Reports</div>
+    <div class="sidebar-link active" data-view="viewOverview"><span class="ic">📊</span> Overview</div>
+
+    <div class="sidebar-group-label">Manage</div>
+    <div class="sidebar-link" data-view="viewTickets"><span class="ic">🎫</span> Tickets</div>
+    <div class="sidebar-link" data-view="viewUsers"><span class="ic">👥</span> Users</div>
+    <div class="sidebar-link" data-view="viewExpenses"><span class="ic">💸</span> Expenses</div>
+    <div class="sidebar-link" data-view="viewFeedback"><span class="ic">⭐</span> Feedback</div>
+
+    <div class="sidebar-group-label">System</div>
+    <div class="sidebar-link" data-view="viewModel"><span class="ic">🧠</span> Model &amp; Corrections</div>
+  </aside>
+
+  <main class="admin-main">
+
+    <!-- ===================== OVERVIEW ===================== -->
+    <div class="page-view active" id="viewOverview">
+      <div class="dash-header" style="padding:0 0 20px;">
+        <div><h1>Support Operations Overview</h1><p>Live intent distribution, urgency breakdown, and volume trend.</p></div>
+        <button class="btn btn-ghost" id="refreshBtn">⟳ Refresh</button>
+      </div>
+
+      <div class="grid-4" id="statCards">
+        <div class="stat-card"><div class="glow" style="background:var(--brand);"></div><div class="label">Total Chats</div><div class="value" id="statTotal">—</div><div class="trend">All-time classified queries</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--critical);"></div><div class="label">Escalated</div><div class="value" id="statEscalated">—</div><div class="trend">Routed to human agents</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--high);"></div><div class="label">Open Tickets</div><div class="value" id="statOpen">—</div><div class="trend">Awaiting resolution</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--low);"></div><div class="label">Avg. Confidence</div><div class="value" id="statConfidence">—</div><div class="trend">ML classification confidence</div></div>
+      </div>
+
+      <div class="grid-4" style="margin-top:18px;">
+        <div class="stat-card"><div class="glow" style="background:var(--brand-2);"></div><div class="label">Registered Users</div><div class="value" id="statUsers">—</div><div class="trend"><span id="statBlocked">0</span> blocked</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--low);"></div><div class="label">Helpful Feedback</div><div class="value" id="statHelpful">—</div><div class="trend">👍 on bot replies</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--critical);"></div><div class="label">Not Helpful</div><div class="value" id="statNotHelpful">—</div><div class="trend">👎 on bot replies</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--brand);"></div><div class="label">Corrections Made</div><div class="value" id="statCorrections">—</div><div class="trend">Fed back into retraining</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="panel"><h3>Intent Distribution</h3><div class="sub">Share of queries per support category</div><div class="chart-wrap"><canvas id="intentChart"></canvas></div></div>
+        <div class="panel"><h3>Urgency Breakdown</h3><div class="sub">Critical / High / Normal / Low volume</div><div class="chart-wrap"><canvas id="urgencyChart"></canvas></div></div>
+        <div class="panel"><h3>Sentiment Split</h3><div class="sub">Positive / Neutral / Negative detected tone</div><div class="chart-wrap"><canvas id="sentimentChart"></canvas></div></div>
+        <div class="panel"><h3>7-Day Volume Trend</h3><div class="sub">Chats received per day</div><div class="chart-wrap"><canvas id="volumeChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ===================== TICKETS ===================== -->
+    <div class="page-view" id="viewTickets">
+      <div class="dash-header" style="padding:0 0 20px;">
+        <div><h1>Ticket &amp; Escalation Console</h1><p>Search, filter, assign, correct, and manage every classified conversation.</p></div>
+        <a class="toolbar-btn" href="/api/tickets/export" download>⬇ Export CSV</a>
+      </div>
+
+      <div class="panel ticket-panel">
+        <div class="ticket-toolbar">
+          <input type="text" id="searchInput" placeholder="Search by user or message…">
+          <select id="filterIntent">{% for i in intents %}<option value="{{ i }}">{{ i }}</option>{% endfor %}</select>
+          <select id="filterUrgency">{% for u in urgencies %}<option value="{{ u }}">{{ u }}</option>{% endfor %}</select>
+          <select id="filterStatus">{% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select>
+          <select id="filterAgent">{% for a in agents %}<option value="{{ a }}">{{ a }}</option>{% endfor %}</select>
+        </div>
+        <div class="table-wrap">
+          <table class="tickets">
+            <thead>
+              <tr>
+                <th>ID</th><th>User</th><th>Message</th><th>Intent</th><th>Correct?</th>
+                <th>Confidence</th><th>Sentiment</th><th>Urgency</th>
+                <th>Status</th><th>Agent</th><th>Notes</th><th>When</th>
+              </tr>
+            </thead>
+            <tbody id="ticketsBody"><tr class="empty-row"><td colspan="12"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== USERS ===================== -->
+    <div class="page-view" id="viewUsers">
+      <div class="dash-header" style="padding:0 0 20px;"><div><h1>User Accounts</h1><p>Everyone who has signed in to the chat widget.</p></div></div>
+      <div class="panel">
+        <div class="ticket-toolbar"><input type="text" id="userSearchInput" placeholder="Search by name or email…"></div>
+        <div class="table-wrap">
+          <table class="users-table">
+            <thead><tr><th>User</th><th>Email</th><th>Tickets</th><th>Escalated</th><th>Open</th><th>Last Active</th><th>Status</th><th></th><th></th></tr></thead>
+            <tbody id="usersBody"><tr class="empty-row"><td colspan="9"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== EXPENSES (admin overview) ===================== -->
+    <div class="page-view" id="viewExpenses">
+      <div class="dash-header" style="padding:0 0 20px;"><div><h1>Expenditure Overview</h1><p>Aggregate spending across every user's personal expense tracker.</p></div></div>
+
+      <div class="grid-3">
+        <div class="stat-card"><div class="glow" style="background:var(--brand);"></div><div class="label">Total Tracked Spend</div><div class="value" id="expTotalSpent">—</div><div class="trend"><span id="expEntryCount">0</span> entries logged</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--brand-2);"></div><div class="label">Top Category</div><div class="value" id="expTopCategory" style="font-size:18px;">—</div><div class="trend">Highest aggregate spend</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--low);"></div><div class="label">Top Spender</div><div class="value" id="expTopSpender" style="font-size:18px;">—</div><div class="trend">Across all users</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="panel"><h3>Spending by category</h3><div class="chart-wrap"><canvas id="adminCategoryChart"></canvas></div></div>
+        <div class="panel"><h3>14-day spending trend</h3><div class="chart-wrap"><canvas id="adminTrendChart"></canvas></div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Top spenders</h3>
+        <div id="topSpendersList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== FEEDBACK ===================== -->
+    <div class="page-view" id="viewFeedback">
+      <div class="dash-header" style="padding:0 0 20px;"><div><h1>Product Feedback</h1><p>Star ratings and comments submitted from My Space.</p></div></div>
+
+      <div class="grid-3">
+        <div class="stat-card"><div class="glow" style="background:var(--high);"></div><div class="label">Average Rating</div><div class="value" id="fbAverage">—</div><div class="trend">out of 5 stars</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--brand);"></div><div class="label">Total Responses</div><div class="value" id="fbCount">—</div><div class="trend">All-time submissions</div></div>
+        <div class="stat-card"><div class="glow" style="background:var(--low);"></div><div class="label">5-Star Share</div><div class="value" id="fbFiveStarShare">—</div><div class="trend">Of all ratings</div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Recent feedback</h3>
+        <div id="feedbackListAdmin"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ===================== MODEL & CORRECTIONS ===================== -->
+    <div class="page-view" id="viewModel">
+      <div class="dash-header" style="padding:0 0 20px;"><div><h1>Model &amp; Corrections</h1><p>Review admin re-labels and retrain the classifier on its own past mistakes.</p></div></div>
+
+      <div class="panel">
+        <div class="retrain-box">
+          <div>
+            <h3 style="margin-bottom:4px;">Retrain from corrections</h3>
+            <div class="sub" style="margin:0;">Folds every correction below back into the training set as a labeled example.</div>
+          </div>
+          <button class="btn btn-primary" id="retrainBtn">🔁 Retrain model</button>
+        </div>
+        <div id="retrainResult" style="display:none; font-size:13px; color:var(--low); margin-bottom:10px;"></div>
+
+        <h3 style="margin-bottom:10px; font-size:15px;">Correction history</h3>
+        <div id="correctionsList"><div class="empty-state">No corrections yet — use the "Correct?" dropdown on a ticket to relabel a misclassified intent.</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- User detail modal -->
+<div class="modal-backdrop" id="userModal">
+  <div class="modal-box">
+    <button class="modal-close" id="userModalClose">✕</button>
+    <h3 id="userModalName">User</h3>
+    <div class="sub" id="userModalEmail"></div>
+    <div id="userModalTickets"></div>
+  </div>
+</div>
+
+<!-- Notes editor modal -->
+<div class="modal-backdrop" id="notesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="notesModalClose">✕</button>
+    <h3>Internal Notes</h3>
+    <div class="sub" id="notesModalTicket">Ticket #</div>
+    <textarea id="notesTextarea" placeholder="Add internal notes for this ticket…"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="notesCancel">Cancel</button>
+      <button class="btn btn-primary" id="notesSave">Save notes</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  window.SA_AGENTS = {{ assign_agents | tojson }};
+  window.SA_INTENTS = {{ all_intents | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

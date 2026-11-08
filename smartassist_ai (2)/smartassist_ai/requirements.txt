@@ -1,0 +1,7 @@
+# Version pins intentionally loose — this avoids pip trying to build
+# older pinned releases (e.g. scikit-learn) from source on newer Python
+# versions where no prebuilt wheel exists for that old pin.
+Flask>=3.0
+scikit-learn>=1.3
+numpy>=1.24
+joblib>=1.3

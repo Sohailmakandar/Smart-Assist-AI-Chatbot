@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}SmartAssist AI — Live Support Chat{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <div>
+    <div class="eyebrow">ML-Powered Support Automation</div>
+    <h1>Customer queries, <span>classified &amp; resolved</span> in real time.</h1>
+    <p class="lead">
+      SmartAssist AI reads every incoming message, predicts its intent with a
+      TF-IDF + Naive Bayes pipeline, scores urgency from sentiment and
+      confidence, and either resolves it instantly or escalates it to a
+      human agent — all in under half a second.
+    </p>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="num">5</div>
+        <div class="label">Support intents</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">4</div>
+        <div class="label">Urgency levels</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">&lt;500ms</div>
+        <div class="label">Response time</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">100%</div>
+        <div class="label">Local &amp; offline ML</div>
+      </div>
+    </div>
+
+    <div class="hero-actions">
+      <a href="#chat" class="btn btn-primary">Try the chatbot ↓</a>
+      <a href="/dashboard" class="btn btn-ghost">Open admin dashboard</a>
+    </div>
+  </div>
+
+  <div id="chat" class="chat-console">
+    <div class="chat-console-header">
+      <div class="who">
+        <div class="avatar">🤖</div>
+        <div>
+          SmartAssist Bot
+          <div style="font-weight:400; font-size:12px; color:var(--text-faint);">Billing · Tech · Account · Orders · FAQ</div>
+        </div>
+      </div>
+      <div class="online"><span class="pulse-dot" style="color:var(--low);"></span> Online</div>
+    </div>
+
+    <!-- Sign-in: name + email identifies the user across sessions -->
+    <div class="identity-bar" id="identityBar">
+      <div class="id-title">SIGN IN TO START A CONVERSATION</div>
+      <div class="identity-row">
+        <input type="text" id="idName" placeholder="Your name" maxlength="60">
+        <input type="email" id="idEmail" placeholder="Your email" maxlength="120">
+        <button id="idSubmit">Start chat</button>
+      </div>
+      <div class="identity-error" id="idError"></div>
+    </div>
+    <div class="identity-chip" id="identityChip">
+      <div class="who">Signed in as <strong id="idWhoName"></strong></div>
+      <button id="idSwitch">Switch user</button>
+    </div>
+
+    <div class="console-tabs">
+      <div class="console-tab active" data-tab="chatTab">Chat</div>
+      <div class="console-tab" data-tab="historyTab">My Tickets</div>
+      <div class="console-tab" data-tab="faqTab">FAQ</div>
+    </div>
+
+    <!-- Chat tab -->
+    <div class="tab-panel active" id="chatTab">
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg bot">
+          <div class="msg-icon">🤖</div>
+          <div>
+            <div class="bubble">Hi! I'm SmartAssist. Sign in above, then ask me about billing, a technical issue, your account, an order, or anything general — I'll classify it and reply instantly.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-chips">
+        <button class="chip" data-msg="I was charged twice for my subscription this month">Billing issue</button>
+        <button class="chip" data-msg="The app keeps crashing when I open my dashboard">App crashing</button>
+        <button class="chip" data-msg="Where is my order? It hasn't updated in 5 days">Track order</button>
+        <button class="chip" data-msg="What are your support working hours?">Support hours</button>
+      </div>
+
+      <div class="live-preview" id="livePreview">
+        <span class="lp-label">LIVE INTENT</span>
+        <div class="lp-bar-track"><div class="lp-bar-fill" id="lpBar"></div></div>
+        <span class="lp-intent" id="lpIntent">start typing…</span>
+      </div>
+
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Sign in above to start chatting…" autocomplete="off" disabled>
+        <button id="sendBtn" title="Send" disabled>➤</button>
+      </div>
+    </div>
+
+    <!-- My Tickets tab -->
+    <div class="tab-panel" id="historyTab">
+      <div class="tab-scroll" id="historyList">
+        <div class="empty-state">Sign in to see your past conversations here.</div>
+      </div>
+    </div>
+
+    <!-- FAQ tab -->
+    <div class="tab-panel" id="faqTab">
+      <div class="tab-scroll">
+        <div class="faq-filter" id="faqFilter">
+          {% for c in faq_categories %}
+          <button class="chip {{ 'active' if loop.first else '' }}" data-cat="{{ c }}">{{ c }}</button>
+          {% endfor %}
+        </div>
+        <div id="faqList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MY SPACE ===================== -->
+<section class="section" id="myspace">
+  <div class="section-head">
+    <div class="eyebrow">Personal area</div>
+    <h2>My Space</h2>
+    <p>Your profile, daily expenditure tracker, incidents, feedback, and notifications — all in one place.</p>
+  </div>
+
+  <div id="myspaceLocked" class="myspace-locked">
+    <p>Sign in from the chat widget above to unlock your personal space.</p>
+  </div>
+
+  <div id="myspaceContent" style="display:none;">
+    <div class="page-tabs" id="myspaceTabs">
+      <div class="page-tab active" data-view="msProfile">Profile</div>
+      <div class="page-tab" data-view="msExpenses">Expenses</div>
+      <div class="page-tab" data-view="msIncidents">Incidents</div>
+      <div class="page-tab" data-view="msFeedback">Feedback</div>
+      <div class="page-tab" data-view="msNotifications">Notifications</div>
+    </div>
+
+    <!-- Profile -->
+    <div class="page-view active" id="msProfile">
+      <div class="panel profile-card">
+        <div class="profile-avatar-lg" id="profileAvatar">?</div>
+        <div style="flex:1;">
+          <h3 id="profileName" style="font-size:19px;">—</h3>
+          <div style="color:var(--text-faint); font-size:13px;" id="profileEmail">—</div>
+          <div class="profile-edit-row">
+            <input type="text" id="profileNameInput" placeholder="Update display name">
+            <button id="profileNameSave">Save</button>
+          </div>
+          <div class="profile-stats-row">
+            <div class="profile-stat"><div class="n" id="pStatTickets">0</div><div class="l">Tickets</div></div>
+            <div class="profile-stat"><div class="n" id="pStatEscalated">0</div><div class="l">Escalated</div></div>
+            <div class="profile-stat"><div class="n" id="pStatLogins">0</div><div class="l">Logins</div></div>
+            <div class="profile-stat"><div class="n" id="pStatExpenses">0</div><div class="l">Expenses logged</div></div>
+            <div class="profile-stat"><div class="n" id="pStatMember">—</div><div class="l">Member since</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Login History</h3>
+        <div class="sub">Every time you've signed in to SmartAssist AI</div>
+        <div id="loginHistoryList"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="page-view" id="msExpenses">
+      <div class="sub-tabs">
+        <div class="sub-tab active" data-sub="subTrack">Track &amp; Analyze</div>
+        <div class="sub-tab" data-sub="subInvoice">Invoice</div>
+        <div class="sub-tab" data-sub="subRecycle">Recycle Bin</div>
+      </div>
+
+      <div class="sub-panel active" id="subTrack">
+        <div class="panel">
+          <h3>Log an expense</h3>
+          <div class="sub">Track daily spending — SmartAssist learns your patterns and gives you tips</div>
+
+          <div class="expense-form">
+            <select id="expCategory">
+              {% for c in expense_categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+            </select>
+            <input type="number" id="expAmount" placeholder="Amount (₹)" min="0" step="0.01">
+            <input type="text" id="expNote" placeholder="Note (optional)" maxlength="200">
+            <button id="expSubmit">+ Add expense</button>
+          </div>
+          <div class="insight-banner" id="expInsight"></div>
+
+          <div class="expense-summary-row" id="expSummaryRow"></div>
+
+          <div class="charts-grid small">
+            <div>
+              <h3 style="font-size:13.5px; margin-bottom:10px;">By category</h3>
+              <div class="chart-wrap" style="height:200px;"><canvas id="expCategoryChart"></canvas></div>
+            </div>
+            <div>
+              <h3 style="font-size:13.5px; margin-bottom:10px;">By time of day</h3>
+              <div class="chart-wrap" style="height:200px;"><canvas id="expTimeChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Personalized recommendations</h3>
+          <div class="sub">Automated insights based on your own spending data</div>
+          <div id="expTips"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Recent expenses</h3>
+          <div id="expList"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <div class="sub-panel" id="subInvoice">
+        <div class="panel">
+          <h3>Generate an invoice</h3>
+          <div class="sub">Monthly or yearly expenditure statement, printable / saveable as PDF</div>
+          <div class="invoice-controls">
+            <select id="invPeriod">
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+            <select id="invMonth"></select>
+            <input type="number" id="invYear" style="width:90px;">
+            <button class="btn btn-primary" id="invGenerate">Generate</button>
+          </div>
+          <div id="invoiceOutput"></div>
+        </div>
+      </div>
+
+      <div class="sub-panel" id="subRecycle">
+        <div class="panel">
+          <h3>Recycle Bin</h3>
+          <div class="sub">Deleted expenses stay here until you restore them</div>
+          <div id="recycleList"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Incidents -->
+    <div class="page-view" id="msIncidents">
+      <div class="panel">
+        <h3>Incidents</h3>
+        <div class="sub">Escalated or high/critical-urgency conversations, tracked separately for follow-up</div>
+        <div id="incidentsList"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="page-view" id="msFeedback">
+      <div class="panel" style="max-width:480px;">
+        <h3>Share your feedback</h3>
+        <div class="sub">How's SmartAssist AI working for you overall?</div>
+        <div class="star-rating" id="starRating">
+          <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span>
+          <span data-star="4">★</span><span data-star="5">★</span>
+        </div>
+        <textarea id="feedbackComment" placeholder="Tell us more (optional)…" style="width:100%; min-height:90px; background:var(--surface-2); border:1px solid var(--border-soft); border-radius:var(--radius-sm); color:var(--text); padding:10px 12px; font-family:inherit; font-size:13.5px; outline:none;"></textarea>
+        <button class="btn btn-primary" id="feedbackSubmit" style="margin-top:12px;">Submit feedback</button>
+        <div id="feedbackThanks" style="display:none; margin-top:12px; color:var(--low); font-size:13.5px;">Thanks for the feedback! 🎉</div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="page-view" id="msNotifications">
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><h3>Notifications</h3><div class="sub">Status updates, resolutions, and transaction confirmations</div></div>
+          <button class="toolbar-btn" id="msNotifReadAll">Mark all read</button>
+        </div>
+        <div id="msNotifList"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ABOUT ===================== -->
+<section class="section" id="about">
+  <div class="section-head">
+    <div class="eyebrow">About the project</div>
+    <h2>What SmartAssist AI actually does</h2>
+    <p>
+      An intelligent customer service chatbot and support management system
+      built for the MCA project synopsis at Karnataka State Open University —
+      demonstrating how classic, interpretable machine learning can automate
+      real customer support workloads without heavy infrastructure.
+    </p>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="icon-box">🎯</div>
+      <h3>Problem it solves</h3>
+      <p>Manual triage of routine queries is slow and inconsistent. Rigid keyword filters break on typos and phrasing. SmartAssist AI replaces both with a trained classifier, a rule-based priority engine, and a self-improving correction loop.</p>
+    </div>
+    <div class="card">
+      <div class="icon-box">🧠</div>
+      <h3>How it thinks</h3>
+      <p>Every message is cleaned, vectorized with TF-IDF (unigrams + bigrams), and classified by a Multinomial Naive Bayes model — and when an admin corrects a misclassification, that correction is folded straight back into retraining.</p>
+    </div>
+    <div class="card">
+      <div class="icon-box">🚦</div>
+      <h3>How it prioritizes</h3>
+      <p>A transparent points-based scorer combines ML confidence, detected sentiment, and critical keywords to assign urgency, auto-assign the right agent, and auto-escalate when needed.</p>
+    </div>
+    <div class="card">
+      <div class="icon-box">💸</div>
+      <h3>Beyond support tickets</h3>
+      <p>A personal expenditure tracker learns each user's spending patterns — by category and by time of day — and surfaces personalized, automated recommendations plus printable monthly/yearly invoices.</p>
+    </div>
+    <div class="card">
+      <div class="icon-box">🔔</div>
+      <h3>Always in the loop</h3>
+      <p>A notification center keeps users updated the moment a ticket is escalated, resolved, or a transaction completes — no need to keep refreshing.</p>
+    </div>
+    <div class="card">
+      <div class="icon-box">🗂️</div>
+      <h3>Nothing lost by accident</h3>
+      <p>Deleted expenses go to a Recycle Bin, not straight to the void — restore them any time before they're gone for good.</p>
+    </div>
+  </div>
+
+  <div style="height: 44px;"></div>
+
+  <div class="grid-2">
+    <div>
+      <h3 style="margin-bottom: 18px; font-size: 18px;">Project objectives</h3>
+      <div class="obj-list">
+        <div class="obj-item"><div class="obj-num">1</div><p>Classify incoming queries into Billing, Technical Support, Account Issues, Order Tracking, and General FAQ.</p></div>
+        <div class="obj-item"><div class="obj-num">2</div><p>Score urgency (Critical / High / Normal / Low) and auto-assign the right agent from confidence and sentiment.</p></div>
+        <div class="obj-item"><div class="obj-num">3</div><p>Run real-time sentiment analysis to catch dissatisfied customers early, with 👍/👎 feedback on every reply.</p></div>
+        <div class="obj-item"><div class="obj-num">4</div><p>Auto-escalate low-confidence or critical interactions, and notify the user the moment it happens.</p></div>
+        <div class="obj-item"><div class="obj-num">5</div><p>Give every user a personal space: profile, login history, incidents, expenditure tracker with invoices &amp; recycle bin.</p></div>
+        <div class="obj-item"><div class="obj-num">6</div><p>Let admins correct misclassifications and retrain the model on its own mistakes — a continuously smarter system.</p></div>
+        <div class="obj-item"><div class="obj-num">7</div><p>Expose REST API endpoints for programmatic classification, analytics, and account management.</p></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom: 18px; font-size: 18px;">Technology stack</h3>
+      <div class="tech-grid">
+        <div class="tech-pill"><span class="sw" style="background:#000;border:1px solid var(--border);"></span>Flask 3.0</div>
+        <div class="tech-pill"><span class="sw" style="background:#F7931E;"></span>scikit-learn 1.3</div>
+        <div class="tech-pill"><span class="sw" style="background:#4B8BBE;"></span>NumPy</div>
+        <div class="tech-pill"><span class="sw" style="background:var(--brand-2);"></span>SQLite3</div>
+        <div class="tech-pill"><span class="sw" style="background:#E34F26;"></span>HTML5 / CSS3</div>
+        <div class="tech-pill"><span class="sw" style="background:#F7DF1E;"></span>JavaScript</div>
+        <div class="tech-pill"><span class="sw" style="background:var(--brand);"></span>Chart.js 4.4</div>
+        <div class="tech-pill"><span class="sw" style="background:#B41717;"></span>Jinja2</div>
+      </div>
+
+      <h3 style="margin: 30px 0 14px; font-size: 18px;">Applications</h3>
+      <div class="obj-list">
+        <div class="obj-item"><div class="obj-num">•</div><p>E-commerce helpdesks — order tracking, returns, payment resolutions.</p></div>
+        <div class="obj-item"><div class="obj-num">•</div><p>Academic helpdesks — admissions, exams, department FAQs.</p></div>
+        <div class="obj-item"><div class="obj-num">•</div><p>SME support automation with low operational cost.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 44px;"></div>
+
+  <h3 style="margin-bottom: 16px; font-size: 18px;">Classification pipeline</h3>
+  <div class="pipeline">
+    <div class="step">Text Input</div><div class="arrow">→</div>
+    <div class="step">Preprocessing</div><div class="arrow">→</div>
+    <div class="step">TF-IDF Vectorization</div><div class="arrow">→</div>
+    <div class="step">Naive Bayes Classifier</div><div class="arrow">→</div>
+    <div class="step">Sentiment Analysis</div><div class="arrow">→</div>
+    <div class="step">Priority Scoring</div><div class="arrow">→</div>
+    <div class="step">Auto-assign Agent</div><div class="arrow">→</div>
+    <div class="step">Escalation + Notify</div><div class="arrow">→</div>
+    <div class="step">SQLite Persistence</div><div class="arrow">→</div>
+    <div class="step">Admin Correction</div><div class="arrow">→</div>
+    <div class="step">Model Retraining</div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/myspace.js') }}"></script>
+{% endblock %}
